@@ -1,151 +1,178 @@
 // Files and modules
 
-import routerList from "../../data/routers.json"
-import { web3, BN } from "../../state/EthereumContext.js"
-import axios from "axios"
-import querystring from "querystring"
+import routerList from "../../data/routers.json";
+import { web3, BN } from "../../state/EthereumContext.js";
+import axios from "axios";
+import querystring from "querystring";
 
-const routerData = routerList.find(router => router.id === "1inch")
+const routerData = routerList.find((router) => router.id === "1inch");
 
 // Resolve 1inch API endpoint
 
 function getEndpoint(chainId) {
-    if (chainId === "0x1") {
-        return "https://api.1inch.exchange/v5.0/1"
-    } else if (chainId === "0x89") {
-        return "https://api.1inch.exchange/v5.0/137"
-    } else if (chainId === "0xfa") {
-        return "https://api.1inch.exchange/v5.0/250"
-    } else if (chainId === "0xa86a") {
-        return "https://api.1inch.exchange/v5.0/43114"
-    } else if (chainId === "0x38") {
-        return "https://api.1inch.exchange/v5.0/56"
-    } else if (chainId === "0xa4b1") {
-        return "https://api.1inch.exchange/v5.0/42161"
-    }
+  if (chainId === "0x1") {
+    return "https://api.1inch.dev/swap/v5.2/1";
+  } else if (chainId === "0x89") {
+    return "https://api.1inch.dev/swap/v5.2/137";
+  } else if (chainId === "0xfa") {
+    return "https://api.1inch.dev/swap/v5.2/250";
+  } else if (chainId === "0xa86a") {
+    return "https://api.1inch.dev/swap/v5.2/43114";
+  } else if (chainId === "0x38") {
+    return "https://api.1inch.dev/swap/v5.2/56";
+  } else if (chainId === "0xa4b1") {
+    return "https://api.1inch.dev/swap/v5.2/42161";
+  }
 }
 
 // Quote swap
 
 async function quote(chain) {
-    // No quote
+  // No quote
 
-    const none = {
-        ...routerData,
-        out: false,
-        priority: 0
-    }
+  const config = {
+    headers: {
+      Authorization: "Bearer CmwTZAjmKFRnzDon82kyJjCXJp0hx8Qc",
+    },
+    params: {},
+  };
 
-    // Check swap parameters
+  const none = {
+    ...routerData,
+    out: false,
+    priority: 0,
+  };
 
-    if (!chain.swapSettings.routers[routerData.id].enabled) return none
-    const endpoint = getEndpoint(chain.id)
-    if (!endpoint) return none
-    const swap = chain.swap
+  // Check swap parameters
 
-    try {
-        // Request swap quote
+  if (!chain.swapSettings.routers[routerData.id].enabled) return none;
+  const endpoint = getEndpoint(chain.id);
+  if (!endpoint) return none;
+  const swap = chain.swap;
 
-        const result = await axios(`${endpoint}/quote?${querystring.encode({
-            fromTokenAddress: swap.tokenIn.address,
-            toTokenAddress: swap.tokenOut.address,
-            amount: swap.tokenInAmount.toString()
-        })}`)
+  try {
+    // Request swap quote
 
-        return {
-            ...routerData,
-            out: BN(result.data.toTokenAmount),
-            priority: 0
-        }
-    } catch(error) {
-        console.error(error)
-    }
+    const result = await axios.get(
+      `${endpoint}/quote?${querystring.encode({
+        fromTokenAddress: swap.tokenIn.address,
+        toTokenAddress: swap.tokenOut.address,
+        amount: swap.tokenInAmount.toString(),
+      })}`,config
+    );
 
-    return none
+    return {
+      ...routerData,
+      out: BN(result.data.toTokenAmount),
+      priority: 0,
+    };
+  } catch (error) {
+    console.error(error);
+  }
+
+  return none;
 }
 
 // Get swap
 
 async function getSwap(chain, account) {
-    // No swap
+  // No swap
 
-    const none = {
+  const none = {
+    router: routerData,
+    out: false,
+    priority: 0,
+  };
+
+  // Check swap parameters
+
+  if (!chain.swapSettings.routers[routerData.id].enabled) return none;
+  const endpoint = getEndpoint(chain.id);
+  if (!endpoint) return none;
+  const swap = chain.swap;
+
+  try {
+    // Swap data
+
+    const data = {
+      fromTokenAddress: swap.tokenIn.address,
+      toTokenAddress: swap.tokenOut.address,
+      amount: swap.tokenInAmount.toString(),
+      fromAddress: account,
+      slippage: chain.swapSettings.slippage,
+      ...(chain.swapSettings.referral && {
+        referrerAddress: chain.swapSettings.referral,
+      }),
+    };
+
+    // Get swap with and without estimate checking
+
+    const [withEstimate, withoutEstimate] = await Promise.all([
+      axios(`${endpoint}/swap?${querystring.encode(data)}`).catch((error) => ({
+        error: true,
+        error,
+      })),
+      axios(
+        `${endpoint}/swap?${querystring.encode({
+          ...data,
+          disableEstimate: true,
+        })}`
+      ),
+    ]);
+
+    if (!withEstimate.error) {
+      return {
         router: routerData,
-        out: false,
-        priority: 0
+        in: BN(withEstimate.data.fromTokenAmount),
+        out: BN(withEstimate.data.toTokenAmount),
+        tx: {
+          from: account,
+          to: withEstimate.data.tx.to,
+          data: withEstimate.data.tx.data,
+          ...(withEstimate.data.tx.gas && {
+            gas: web3.utils.numberToHex(
+              Math.floor(withEstimate.data.tx.gas * 1.25)
+            ),
+          }),
+        },
+        priority: 0,
+      };
     }
 
-    // Check swap parameters
-    
-    if (!chain.swapSettings.routers[routerData.id].enabled) return none
-    const endpoint = getEndpoint(chain.id)
-    if (!endpoint) return none
-    const swap = chain.swap
-    
-    try {
-        // Swap data
+    // Return swap without estimate check on insufficient gas or allowance error
 
-        const data = {
-            fromTokenAddress: swap.tokenIn.address,
-            toTokenAddress: swap.tokenOut.address,
-            amount: swap.tokenInAmount.toString(),
-            fromAddress: account,
-            slippage: chain.swapSettings.slippage,
-            ...(chain.swapSettings.referral) && { referrerAddress: chain.swapSettings.referral }
-        }
-
-        // Get swap with and without estimate checking
-
-        const [ withEstimate, withoutEstimate ] = await Promise.all([
-            axios(`${endpoint}/swap?${querystring.encode(data)}`)
-                .catch(error => ({ error: true, error })),
-            axios(`${endpoint}/swap?${querystring.encode({
-                ...data,
-                disableEstimate: true
-            })}`)
-        ])
-        
-        if (!withEstimate.error) {
-            return {
-                router: routerData,
-                in: BN(withEstimate.data.fromTokenAmount),
-                out: BN(withEstimate.data.toTokenAmount),
-                tx: {
-                    from: account,
-                    to: withEstimate.data.tx.to,
-                    data: withEstimate.data.tx.data,
-                    ...(withEstimate.data.tx.gas) && { gas: web3.utils.numberToHex(Math.floor(withEstimate.data.tx.gas * 1.25)) }
-                },
-                priority: 0
-            }
-        }
-
-        // Return swap without estimate check on insufficient gas or allowance error
-
-        if (
-            withEstimate?.error?.response?.data?.description.startsWith("insufficient funds for gas * price + value") ||
-            withEstimate?.error?.response?.data?.description.startsWith("Not enough allowance")
-        ) {
-            return {
-                router: routerData,
-                in: BN(withoutEstimate.data.fromTokenAmount),
-                out: BN(withoutEstimate.data.toTokenAmount),
-                tx: {
-                    from: account,
-                    to: withoutEstimate.data.tx.to,
-                    data: withoutEstimate.data.tx.data,
-                    ...(withoutEstimate.data.tx.gas) && { gas: web3.utils.numberToHex(Math.floor(withoutEstimate.data.tx.gas * 1.25)) }
-                },
-                priority: 0
-            }
-        }
-    } catch(error) {
-        console.error(error)
+    if (
+      withEstimate?.error?.response?.data?.description.startsWith(
+        "insufficient funds for gas * price + value"
+      ) ||
+      withEstimate?.error?.response?.data?.description.startsWith(
+        "Not enough allowance"
+      )
+    ) {
+      return {
+        router: routerData,
+        in: BN(withoutEstimate.data.fromTokenAmount),
+        out: BN(withoutEstimate.data.toTokenAmount),
+        tx: {
+          from: account,
+          to: withoutEstimate.data.tx.to,
+          data: withoutEstimate.data.tx.data,
+          ...(withoutEstimate.data.tx.gas && {
+            gas: web3.utils.numberToHex(
+              Math.floor(withoutEstimate.data.tx.gas * 1.25)
+            ),
+          }),
+        },
+        priority: 0,
+      };
     }
+  } catch (error) {
+    console.error(error);
+  }
 
-    return none
+  return none;
 }
 
 // Exports
 
-export { quote, getSwap }
+export { quote, getSwap };

@@ -203,9 +203,12 @@ const SwapInterface = () => {
                     ...chain.gasPrice.getGasParameters(chain.swapSettings.gas[chain.id])
                 }]
             })
+            console.log(`Transaction successful! Hash: ${txReceipt}`);
+            alert(`Transaction successful! Hash: ${txReceipt}`);
         } catch(error) {
             console.error(error)
         }
+
         swapPending.current = false
         updateSwapButtonText()
     }
