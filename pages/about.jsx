@@ -3,10 +3,10 @@
 const About = () => (
     <>
         <div className="content">
-            <h1 className="title">About EcoSwap</h1>
-            <p className="paragraph">EcoSwap is a simple, privacy-centered swap interface designed to streamline the token swapping experience into a single app. Fetching data from all the major aggregators, EcoSwap finds the best quote quickly without any of the extra bloat of a complicated swap interface.</p>
-            <p className="paragraph">EcoSwap was also designed with privacy and analytics in mind. Many Dapps now track wallet addresses and other data, which can be a big violation of privacy. EcoSwap does not collect wallet addresses, browser fingerprints, or any other kind of tracking data and uses aggregator APIs directly, bypassing any interfaces that may contain tracking software.</p>
-            <p className="paragraph">To become a part of the community, join the EcoSwap Discord server where you can report bugs, get all the latest announcements and updates, and chat with other cool DeFi users.</p>
+            <h1 className="title">About 0xSwap</h1>
+            <p className="paragraph">0xSwap is a simple, privacy-centered swap interface designed to streamline the token swapping experience into a single app. Fetching data from all the major aggregators, 0xSwap finds the best quote quickly without any of the extra bloat of a complicated swap interface.</p>
+            <p className="paragraph">0xSwap was also designed with privacy and analytics in mind. Many Dapps now track wallet addresses and other data, which can be a big violation of privacy. 0xSwap does not collect wallet addresses, browser fingerprints, or any other kind of tracking data and uses aggregator APIs directly, bypassing any interfaces that may contain tracking software.</p>
+            <p className="paragraph">To become a part of the community, join the 0xSwap Discord server where you can report bugs, get all the latest announcements and updates, and chat with other cool DeFi users.</p>
             <p className="paragraph"></p>
         </div>
         <style jsx>{`

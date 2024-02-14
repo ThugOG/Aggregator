@@ -300,7 +300,7 @@ const NavBar = () => {
                 <Link href="/">
                     <a className="header">
                         <img className="icon" src={theme === "dark" ? "/ecoswap-white.png" : "/ecoswap.png"}></img>
-                        <div className="title">EcoSwap</div>
+                        <div className="title">0xSwap</div>
                     </a>
                 </Link>
                 <NavLink name="About" href="/about"></NavLink>

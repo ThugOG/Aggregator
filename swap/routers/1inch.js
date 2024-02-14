@@ -24,18 +24,10 @@ function getEndpoint(chainId) {
     return "https://api.1inch.dev/swap/v5.2/42161";
   }
 }
-
 // Quote swap
 
 async function quote(chain) {
   // No quote
-
-  const config = {
-    headers: {
-      Authorization: "Bearer CmwTZAjmKFRnzDon82kyJjCXJp0hx8Qc",
-    },
-    params: {},
-  };
 
   const none = {
     ...routerData,
@@ -50,20 +42,28 @@ async function quote(chain) {
   if (!endpoint) return none;
   const swap = chain.swap;
 
+  const config = {
+    headers: {
+      "Authorization": "Bearer 5hdwLOwpXt4Ata25t0veqChSjR2kDtpZ",
+    },
+    params: {
+      src: swap.tokenIn.address,
+      dst: swap.tokenOut.address,
+      amount: swap.tokenInAmount.toString(),
+    },
+  };
+
+  
   try {
     // Request swap quote
 
     const result = await axios.get(
-      `${endpoint}/quote?${querystring.encode({
-        fromTokenAddress: swap.tokenIn.address,
-        toTokenAddress: swap.tokenOut.address,
-        amount: swap.tokenInAmount.toString(),
-      })}`,config
-    );
+      `${endpoint}/quote`, config);
+    console.log(result);
 
     return {
       ...routerData,
-      out: BN(result.data.toTokenAmount),
+      out: BN(result.data.toAmount),
       priority: 0,
     };
   } catch (error) {

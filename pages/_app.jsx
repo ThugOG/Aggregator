@@ -12,7 +12,7 @@ import { useContext } from "react"
 // Site metadata
 
 const Metadata = ({ page }) => {
-    const title = `EcoSwap${page ? ` - ${page}` : ""}`
+    const title = `0xSwap${page ? ` - ${page}` : ""}`
     return (
         <Head>
             <meta charSet="UTF-8"></meta>
