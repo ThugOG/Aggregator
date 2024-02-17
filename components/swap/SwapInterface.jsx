@@ -195,22 +195,26 @@ const SwapInterface = () => {
         // Send swap transaction
 
         try {
-            await ethereum.request({
-                method: "eth_sendTransaction",
-                params: [{
-                    ...swapData.tx,
-                    value: swap.tokenIn.address === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" ? BN(swapData.in).toString(16) : 0,
-                    ...chain.gasPrice.getGasParameters(chain.swapSettings.gas[chain.id])
-                }]
-            })
+        // Send the swap transaction and capture the transaction hash in txReceipt
+        const txReceipt = await ethereum.request({
+            method: "eth_sendTransaction",
+            params: [{
+                ...swapData.tx,
+                value: swap.tokenIn.address === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" ? BN(swapData.in).toString(16) : 0,
+                ...chain.gasPrice.getGasParameters(chain.swapSettings.gas[chain.id])
+            }]
+        });
+        // Ensure txReceipt is defined before attempting to display it
+        if (txReceipt) {
             console.log(`Transaction successful! Hash: ${txReceipt}`);
-            alert(`Transaction successful! Hash: ${txReceipt}`);
-        } catch(error) {
-            console.error(error)
+        } else {
+            console.error("Transaction failed or txReceipt is undefined.");
         }
-
-        swapPending.current = false
-        updateSwapButtonText()
+    } catch(error) {
+        console.error(error);
+    }
+    swapPending.current = false;
+    updateSwapButtonText();
     }
 
     // Update swap button text
